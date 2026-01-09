@@ -24,40 +24,41 @@ public class SecurityConfig {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
+    // 🔹 BCrypt para encriptar passwords
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // 🔹 AuthenticationManager necesario para login
     @Bean
     public AuthenticationManager authManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
+    // 🔹 Configuración de seguridad HTTP + CORS
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 👇 Activar CORS con la configuración global
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Activar CORS
+            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF para APIs
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()       // login y otros auth endpoints
-                .requestMatchers("/api/usuarios/registro").permitAll() // registro de usuarios
-                .anyRequest().authenticated()
+                .requestMatchers("/api/auth/**").permitAll()         // login, refresh token, etc.
+                .requestMatchers("/api/usuarios/registro").permitAll() // registro
+                .anyRequest().authenticated() // cualquier otra petición requiere auth
             )
-            .httpBasic();
+            .httpBasic(); // ⚡ Para pruebas simples, puedes usar JWT después
 
         return http.build();
     }
 
-    // 👇 Configuración global de CORS
+    // 🔹 Configuración global de CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Orígenes permitidos
+        // Orígenes permitidos (frontend de Render)
         config.setAllowedOrigins(List.of(
-            "http://localhost:4200",
             "https://cuantika-frontend.onrender.com"
         ));
 
@@ -66,10 +67,13 @@ public class SecurityConfig {
 
         // Headers permitidos
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+
+        // ⚡ Para JWT y token en header, no necesitas credentials
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 }
