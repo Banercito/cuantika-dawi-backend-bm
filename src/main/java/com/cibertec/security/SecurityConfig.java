@@ -37,13 +37,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 👇 ACTIVAR CORS
-            .cors()
-            .and()
+            // 👇 Activar CORS con la configuración global
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/usuarios/registro").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()       // login y otros auth endpoints
+                .requestMatchers("/api/usuarios/registro").permitAll() // registro de usuarios
                 .anyRequest().authenticated()
             )
             .httpBasic();
@@ -51,34 +50,26 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 👇 AQUÍ VA EL CORS GLOBAL
+    // 👇 Configuración global de CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
+        // Orígenes permitidos
         config.setAllowedOrigins(List.of(
             "http://localhost:4200",
             "https://cuantika-frontend.onrender.com"
         ));
 
-        config.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS"
-        ));
+        // Métodos HTTP permitidos
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
+        // Headers permitidos
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
-    
-    /*//MÉTODO PARA ENCRYPTAR Y VER EL PASSWORD
-	public static void main(String[] args) {
-		System.out.println("Password: " +new BCryptPasswordEncoder().encode("alan") );
-	}*/
-	
-    
 }
