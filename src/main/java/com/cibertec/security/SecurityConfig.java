@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -24,52 +25,46 @@ public class SecurityConfig {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
-    // 🔹 BCrypt para encriptar passwords
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔹 AuthenticationManager necesario para login
     @Bean
     public AuthenticationManager authManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // 🔹 Configuración de seguridad HTTP + CORS
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Activar CORS
-            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF para APIs
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()         // login, refresh token, etc.
-                .requestMatchers("/api/usuarios/registro").permitAll() // registro
-                .anyRequest().authenticated() // cualquier otra petición requiere auth
+                // ⚡ Preflight OPTIONS permitido para cualquier URL
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/usuarios/registro").permitAll()
+                .anyRequest().authenticated()
             )
-            .httpBasic(); // ⚡ Para pruebas simples, puedes usar JWT después
+            .httpBasic(); // ⚡ Para pruebas, luego reemplazar por JWT
 
         return http.build();
     }
 
-    // 🔹 Configuración global de CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Orígenes permitidos (frontend de Render)
+        // 🔹 Permitir frontend local y producción
         config.setAllowedOrigins(List.of(
+            "http://localhost:4200",
             "https://cuantika-frontend.onrender.com"
         ));
 
-        // Métodos HTTP permitidos
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        // Headers permitidos
         config.setAllowedHeaders(List.of("*"));
-
-        // ⚡ Para JWT y token en header, no necesitas credentials
-        config.setAllowCredentials(false);
+        config.setAllowCredentials(true); // necesario para Authorization header
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
