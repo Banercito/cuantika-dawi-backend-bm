@@ -14,7 +14,7 @@ import com.cibertec.service.UsuarioService;
 import jakarta.annotation.security.PermitAll;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
 	
