@@ -14,7 +14,7 @@ import com.cibertec.model.Transaccion;
 import com.cibertec.service.TransaccionService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+
 @RequestMapping("/api/transacciones")
 public class TransaccionController {
 	

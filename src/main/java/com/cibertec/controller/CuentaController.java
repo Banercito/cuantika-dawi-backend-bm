@@ -12,7 +12,7 @@ import com.cibertec.service.CuentaService;
 import com.cibertec.service.UsuarioService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+
 @RequestMapping("/api/cuentas")
 public class CuentaController {
 	

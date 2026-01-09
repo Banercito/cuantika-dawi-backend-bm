@@ -14,7 +14,7 @@ import com.cibertec.model.Categoria;
 import com.cibertec.service.CategoriaService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+
 @RequestMapping("/api/categorias")
 public class CategoriaController {
 	

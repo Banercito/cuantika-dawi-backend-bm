@@ -17,7 +17,7 @@ import com.cibertec.model.Usuario;
 import com.cibertec.service.UsuarioService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+
 @RequestMapping("/api/auth")
 public class AuthController {
 
