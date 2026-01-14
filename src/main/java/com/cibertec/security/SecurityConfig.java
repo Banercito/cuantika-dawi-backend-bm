@@ -1,6 +1,7 @@
-package com.cibertec.security;
+// 1. ELIMINA el archivo CorsConfig.java completo o comenta su contenido
 
-import java.util.List;
+// 2. MODIFICA SecurityConfig.java:
+package com.cibertec.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +13,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.*;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -32,43 +38,54 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Esto es CRÍTICO
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/usuarios/registro").permitAll()
+                .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Si usas Swagger
                 .anyRequest().authenticated()
-            )
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable());
+            );
 
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
-        CorsConfiguration config = new CorsConfiguration();
-
-        config.setAllowedOrigins(List.of(
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Configuración explícita
+        configuration.setAllowedOrigins(Arrays.asList(
+            "https://cuantika-frontend.onrender.com",
             "http://localhost:4200",
-            "https://cuantika-frontend.onrender.com"
+            "http://localhost:3000" // Agrega si usas React en puerto 3000
         ));
-
-        config.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
-
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
-
-        source.registerCorsConfiguration("/**", config);
+        
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", 
+            "Content-Type", 
+            "Accept",
+            "X-Requested-With",
+            "Cache-Control"
+        ));
+        
+        configuration.setExposedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Disposition"
+        ));
+        
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // 1 hora de cache para preflight
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        
         return source;
     }
 }
