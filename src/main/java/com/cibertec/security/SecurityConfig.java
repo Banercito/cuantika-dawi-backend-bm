@@ -1,8 +1,5 @@
 package com.cibertec.security;
 
-import java.util.Arrays;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,108 +8,96 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    // 🔐 Password encoder
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔑 Authentication Manager
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
+            AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
-    // 🛡️ Security Filter Chain
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // 🌍 CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-            // ❌ CSRF (JWT no lo necesita)
             .csrf(csrf -> csrf.disable())
 
-            // 🔒 Sin sesión (stateless)
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-
-            // 🔓 Rutas públicas y protegidas
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                // Auth
                 .requestMatchers("/api/auth/**").permitAll()
-
-                // Registro
                 .requestMatchers("/api/usuarios/registro").permitAll()
-
-                // Swagger (opcional)
-                .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
-                // Todo lo demás protegido
+                .requestMatchers("/api-docs/**", "/swagger-ui/**").permitAll()
                 .anyRequest().authenticated()
             )
 
-            // 🧩 Filtro JWT
-            .addFilterBefore(jwtAuthenticationFilter,
-                    UsernamePasswordAuthenticationFilter.class);
+            // LOGIN PARA SPA (SIN REDIRECCIONES)
+            .formLogin(form -> form
+                .loginProcessingUrl("/api/auth/login")
+                .successHandler((req, res, auth) -> {
+                    res.setStatus(200);
+                    res.setContentType("application/json");
+                    res.getWriter().write("{\"message\":\"Login exitoso\"}");
+                })
+                .failureHandler((req, res, ex) -> {
+                    res.setStatus(401);
+                    res.setContentType("application/json");
+                    res.getWriter().write("{\"error\":\"Credenciales inválidas\"}");
+                })
+                .permitAll()
+            )
+
+            .logout(logout -> logout
+                .logoutUrl("/api/auth/logout")
+                .logoutSuccessHandler((req, res, auth) -> {
+                    res.setStatus(200);
+                })
+                .permitAll()
+            );
 
         return http.build();
     }
 
-    // 🌐 Configuración CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
 
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.setAllowedOrigins(Arrays.asList(
+        config.setAllowedOrigins(Arrays.asList(
             "https://cuantika-frontend.onrender.com",
-            "http://localhost:4200",
-            "http://localhost:3000"
+            "http://localhost:4200"
         ));
 
-        configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        config.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ));
 
-        configuration.setAllowedHeaders(Arrays.asList(
+        config.setAllowedHeaders(Arrays.asList(
             "Authorization",
-            "Content-Type",
-            "Accept"
+            "Content-Type"
         ));
 
-        configuration.setExposedHeaders(Arrays.asList(
-            "Authorization"
-        ));
-
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
 
-        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }
